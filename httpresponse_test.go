@@ -36,6 +36,31 @@ func TestWriteJSON_SetsHeadersAndBody(t *testing.T) {
 	}
 }
 
+func TestWriteJSON_MarshalErrorDoesNotWrite(t *testing.T) {
+	rr := httptest.NewRecorder()
+	err := httpresponse.WriteJSON(rr, http.StatusOK, make(chan int))
+	if err == nil {
+		t.Fatal("expected marshal error")
+	}
+	if rr.Body.Len() != 0 {
+		t.Fatalf("body must stay empty, got %q", rr.Body.String())
+	}
+	if ct := rr.Header().Get("Content-Type"); ct != "" {
+		t.Fatalf("Content-Type must not be set on marshal failure, got %q", ct)
+	}
+}
+
+func TestWriteJSON_PreservesCallerContentType(t *testing.T) {
+	rr := httptest.NewRecorder()
+	rr.Header().Set("Content-Type", "application/vnd.api+json")
+	if err := httpresponse.WriteJSON(rr, http.StatusOK, map[string]bool{"ok": true}); err != nil {
+		t.Fatal(err)
+	}
+	if got := rr.Header().Get("Content-Type"); got != "application/vnd.api+json" {
+		t.Fatalf("caller Content-Type overwritten: %q", got)
+	}
+}
+
 func TestWriteSuccess(t *testing.T) {
 	rr := httptest.NewRecorder()
 	user := &User{ID: 1, Name: "Ada"}
