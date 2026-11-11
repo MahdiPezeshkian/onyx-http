@@ -12,13 +12,23 @@ import (
 
 const contentTypeJSON = "application/json; charset=utf-8"
 
-// WriteJSON writes v as JSON with the given HTTP status code.
-// It sets Content-Type to application/json; charset=utf-8.
+// WriteJSON serializes v to JSON before writing any response.
+// On marshal failure it returns the error without setting status or body.
+// It sets Content-Type only when the caller has not already set it.
+// A trailing newline is written to match encoding/json.Encoder behavior.
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
-	w.Header().Set("Content-Type", contentTypeJSON)
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b = append(b, '\n')
+
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", contentTypeJSON)
+	}
 	w.WriteHeader(status)
-	enc := json.NewEncoder(w)
-	return enc.Encode(v)
+	_, err = w.Write(b)
+	return err
 }
 
 // WriteSuccess writes a successful onyx-response envelope.

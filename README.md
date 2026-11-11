@@ -45,6 +45,8 @@ _ = httpresponse.WriteFailure(w, http.StatusUnauthorized, "invalid refresh token
 
 ## Design decisions
 
+- `WriteJSON` marshals the payload before writing status/headers so serialization failures do not produce partial responses.
+- Existing `Content-Type` headers set by the caller are preserved.
 - Framework-agnostic: works with `net/http` and any framework that exposes
   `http.ResponseWriter`.
 - **No centralized business-error → status-code policy.** Callers pass status
